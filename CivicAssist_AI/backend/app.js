@@ -47,14 +47,27 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/checklist', checklistRoutes);
 app.use('/api/user', userRoutes);
 
+const path = require('path');
+
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'CivicFlow AI', timestamp: new Date().toISOString() });
 });
 
-// ─── 404 Catch-all ───────────────────────────────────────────────────────────
-app.use((req, res) => {
-  res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
+// ─── Static Frontend Serving ──────────────────────────────────────────────────
+// Serve static files from the 'dist' directory (Vite build output)
+const distPath = path.join(__dirname, '../dist');
+app.use(express.static(distPath));
+
+// ─── 404 / SPA Routing ───────────────────────────────────────────────────────
+// If a request doesn't match an API route or a static file, serve index.html
+app.get('*', (req, res) => {
+  // If it's an API request that wasn't handled, return 404
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
+  }
+  // Otherwise serve the React app
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────
